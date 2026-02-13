@@ -363,3 +363,164 @@ code {
     font-size: 20px;
   }
 }
+
+
+/* Info Box for Demo Credentials */
+.info-box {
+  margin-top: 30px;
+  padding: 15px;
+  background: #e3f2fd;
+  border-radius: 8px;
+  border-left: 4px solid #2196f3;
+}
+
+.info-box p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #1565c0;
+}
+
+.info-box strong {
+  color: #0d47a1;
+}
+
+/* Patient Cards for Doctor Dashboard */
+.patients-section {
+  margin-top: 30px;
+}
+
+.patient-card {
+  background: #f9f9f9;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  border: 2px solid #e0e0e0;
+  transition: border-color 0.3s;
+}
+
+.patient-card:hover {
+  border-color: #667eea;
+}
+
+.patient-header {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+}
+
+.patient-header h2 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 22px;
+}
+
+.patient-header p {
+  margin: 3px 0;
+  color: #666;
+}
+
+.assessment-count {
+  color: #667eea !important;
+  font-weight: 600;
+  margin-top: 8px !important;
+}
+
+.expand-icon {
+  font-size: 20px;
+  color: #667eea;
+}
+
+.patient-history {
+  padding: 20px;
+  background: #f5f5f5;
+}
+
+/* Prescription Editing */
+.prescription-header-with-edit {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.btn-edit {
+  padding: 8px 16px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-edit:hover {
+  background: #5568d3;
+  transform: translateY(-1px);
+}
+
+.medications-editor {
+  margin-bottom: 30px;
+}
+
+.medication-edit-card {
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border-left: 4px solid #667eea;
+}
+
+.medication-edit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.medication-edit-header h3 {
+  margin: 0;
+  color: #667eea;
+}
+
+.btn-danger-small {
+  padding: 6px 12px;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-danger-small:hover {
+  background: #d32f2f;
+}
+
+/* Responsive Updates */
+@media (max-width: 768px) {
+  .patient-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .expand-icon {
+    align-self: flex-end;
+  }
+
+  .prescription-header-with-edit {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .btn-edit {
+    width: 100%;
+  }
+}

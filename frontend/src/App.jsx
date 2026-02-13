@@ -3,12 +3,14 @@ import { useState, useEffect } from 'react';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import DoctorDashboard from './pages/DoctorDashboard';
 import Assessment from './pages/Assessment';
 import './App.css';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
-  const [patient, setPatient] = useState(JSON.parse(localStorage.getItem('patient') || 'null'));
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || 'null'));
+  const [userType, setUserType] = useState(localStorage.getItem('userType'));
 
   useEffect(() => {
     if (token) {
@@ -19,21 +21,31 @@ function App() {
   }, [token]);
 
   useEffect(() => {
-    if (patient) {
-      localStorage.setItem('patient', JSON.stringify(patient));
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
     } else {
-      localStorage.removeItem('patient');
+      localStorage.removeItem('user');
     }
-  }, [patient]);
+  }, [user]);
 
-  const handleLogin = (newToken, patientData) => {
+  useEffect(() => {
+    if (userType) {
+      localStorage.setItem('userType', userType);
+    } else {
+      localStorage.removeItem('userType');
+    }
+  }, [userType]);
+
+  const handleLogin = (newToken, userData, type) => {
     setToken(newToken);
-    setPatient(patientData);
+    setUser(userData);
+    setUserType(type);
   };
 
   const handleLogout = () => {
     setToken(null);
-    setPatient(null);
+    setUser(null);
+    setUserType(null);
   };
 
   return (
@@ -45,16 +57,35 @@ function App() {
           <Route 
             path="/dashboard" 
             element={
-              token ? <Dashboard patient={patient} token={token} onLogout={handleLogout} /> : <Navigate to="/login" />
+              token && userType === 'patient' ? 
+                <Dashboard patient={user} token={token} onLogout={handleLogout} /> : 
+                <Navigate to="/login" />
+            } 
+          />
+          <Route 
+            path="/doctor-dashboard" 
+            element={
+              token && userType === 'doctor' ? 
+                <DoctorDashboard user={user} token={token} onLogout={handleLogout} /> : 
+                <Navigate to="/login" />
             } 
           />
           <Route 
             path="/assessment" 
             element={
-              token ? <Assessment patient={patient} token={token} /> : <Navigate to="/login" />
+              token && userType === 'patient' ? 
+                <Assessment patient={user} token={token} /> : 
+                <Navigate to="/login" />
             } 
           />
-          <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} />} />
+          <Route 
+            path="/" 
+            element={
+              <Navigate to={
+                token ? (userType === 'doctor' ? "/doctor-dashboard" : "/dashboard") : "/login"
+              } />
+            } 
+          />
         </Routes>
       </div>
     </Router>

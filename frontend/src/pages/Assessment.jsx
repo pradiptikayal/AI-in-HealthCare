@@ -32,7 +32,7 @@ function Assessment({ patient, token }) {
       const symptomsArray = formData.symptoms.split(',').map(s => s.trim()).filter(s => s);
       
       const response = await axios.post('/api/assessments', {
-        patientID: patient.patientID,
+        patientID: patient.userID,
         weight: parseFloat(formData.weight),
         weightUnit: formData.weightUnit,
         height: parseFloat(formData.height),

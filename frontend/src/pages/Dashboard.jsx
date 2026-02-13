@@ -14,7 +14,7 @@ function Dashboard({ patient, token, onLogout }) {
 
   const fetchHistory = async () => {
     try {
-      const response = await axios.get(`/api/patients/${patient.patientID}/history`, {
+      const response = await axios.get(`/api/patients/${patient.userID}/history`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setHistory(response.data.history);
@@ -36,7 +36,7 @@ function Dashboard({ patient, token, onLogout }) {
         <div className="dashboard-header">
           <div>
             <h1>Welcome, {patient.firstName} {patient.lastName}</h1>
-            <p className="subtitle">Patient ID: {patient.patientID}</p>
+            <p className="subtitle">Patient ID: {patient.userID}</p>
           </div>
           <button onClick={handleLogout} className="btn-secondary">Logout</button>
         </div>

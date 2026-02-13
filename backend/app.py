@@ -4,7 +4,8 @@ import bcrypt
 import re
 import jwt
 from datetime import datetime, timezone, timedelta
-from data_access import generate_id, add_record, find_by_id, find_all_by_field
+from data_access import generate_id, add_record, find_by_id, find_all_by_field, update_record, read_json_file
+from bedrock_service import get_bedrock_service
 
 app = Flask(__name__)
 CORS(app)
@@ -109,19 +110,19 @@ def register_patient():
             'message': str(e)
         }), 500
 
-@app.route('/api/patients/login', methods=['POST'])
-def login_patient():
+@app.route('/api/login', methods=['POST'])
+def unified_login():
     """
-    Authenticate a patient and generate session token.
+    Unified authentication for both patients and doctors.
     
     Expected JSON body:
     {
-        "email": "john.doe@example.com",
+        "email": "user@example.com",
         "password": "securepassword"
     }
     
     Returns:
-        200: Authentication successful with session token and patient info
+        200: Authentication successful with session token and user info
         400: Validation error (missing fields)
         401: Invalid credentials
     """
@@ -149,45 +150,72 @@ def login_patient():
                 'message': 'Email and password must be non-empty'
             }), 400
         
-        # Find patient by email
+        # Try to find as patient first
         patients = find_all_by_field('patients.json', 'email', email)
         
-        if not patients:
-            return jsonify({
-                'error': 'Invalid credentials',
-                'message': 'Invalid email or password'
-            }), 401
+        if patients:
+            patient = patients[0]
+            password_hash = patient.get('passwordHash', '')
+            
+            if bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8')):
+                # Generate JWT token for patient
+                token_payload = {
+                    'userID': patient['patientID'],
+                    'email': patient['email'],
+                    'userType': 'patient',
+                    'exp': datetime.now(timezone.utc) + timedelta(hours=24)
+                }
+                
+                token = jwt.encode(token_payload, SECRET_KEY, algorithm='HS256')
+                
+                return jsonify({
+                    'message': 'Authentication successful',
+                    'token': token,
+                    'userType': 'patient',
+                    'user': {
+                        'userID': patient['patientID'],
+                        'firstName': patient['firstName'],
+                        'lastName': patient['lastName'],
+                        'email': patient['email']
+                    }
+                }), 200
         
-        patient = patients[0]
+        # Try to find as doctor
+        doctors = find_all_by_field('doctors.json', 'email', email)
         
-        # Verify password
-        password_hash = patient.get('passwordHash', '')
-        if not bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8')):
-            return jsonify({
-                'error': 'Invalid credentials',
-                'message': 'Invalid email or password'
-            }), 401
+        if doctors:
+            doctor = doctors[0]
+            password_hash = doctor.get('passwordHash', '')
+            
+            if bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8')):
+                # Generate JWT token for doctor
+                token_payload = {
+                    'userID': doctor['doctorID'],
+                    'email': doctor['email'],
+                    'userType': 'doctor',
+                    'exp': datetime.now(timezone.utc) + timedelta(hours=24)
+                }
+                
+                token = jwt.encode(token_payload, SECRET_KEY, algorithm='HS256')
+                
+                return jsonify({
+                    'message': 'Authentication successful',
+                    'token': token,
+                    'userType': 'doctor',
+                    'user': {
+                        'userID': doctor['doctorID'],
+                        'firstName': doctor['firstName'],
+                        'lastName': doctor['lastName'],
+                        'email': doctor['email'],
+                        'specialization': doctor.get('specialization', '')
+                    }
+                }), 200
         
-        # Generate JWT token
-        token_payload = {
-            'patientID': patient['patientID'],
-            'email': patient['email'],
-            'exp': datetime.now(timezone.utc) + timedelta(hours=24)  # Token expires in 24 hours
-        }
-        
-        token = jwt.encode(token_payload, SECRET_KEY, algorithm='HS256')
-        
-        # Return success response with token and patient info
+        # No match found
         return jsonify({
-            'message': 'Authentication successful',
-            'token': token,
-            'patient': {
-                'patientID': patient['patientID'],
-                'firstName': patient['firstName'],
-                'lastName': patient['lastName'],
-                'email': patient['email']
-            }
-        }), 200
+            'error': 'Invalid credentials',
+            'message': 'Invalid email or password'
+        }), 401
         
     except Exception as e:
         return jsonify({
@@ -196,21 +224,216 @@ def login_patient():
         }), 500
 def validate_token(token):
     """
-    Validate JWT token and return patient ID.
+    Validate JWT token and return user info.
 
     Args:
         token: JWT token string
 
     Returns:
-        Patient ID if valid, None otherwise
+        Dict with userID and userType if valid, None otherwise
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-        return payload.get('patientID')
+        return {
+            'userID': payload.get('userID'),
+            'userType': payload.get('userType', 'patient')  # Default to patient for backward compatibility
+        }
     except jwt.ExpiredSignatureError:
         return None
     except jwt.InvalidTokenError:
         return None
+
+@app.route('/api/doctors/patients', methods=['GET'])
+def get_doctor_patients():
+    """
+    Get all patients assigned to a doctor with their complete history.
+    
+    Requires authentication via Bearer token in Authorization header.
+    
+    Returns:
+        200: List of patients with their assessments and prescriptions
+        401: Unauthorized
+        403: Forbidden (not a doctor)
+    """
+    try:
+        # Validate authentication
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({
+                'error': 'Unauthorized',
+                'message': 'Missing or invalid authorization header'
+            }), 401
+
+        token = auth_header.split(' ')[1]
+        user_info = validate_token(token)
+
+        if not user_info:
+            return jsonify({
+                'error': 'Unauthorized',
+                'message': 'Invalid or expired token'
+            }), 401
+
+        # Verify user is a doctor
+        if user_info['userType'] != 'doctor':
+            return jsonify({
+                'error': 'Forbidden',
+                'message': 'Only doctors can access this endpoint'
+            }), 403
+
+        doctor_id = user_info['userID']
+
+        # Get all assignments for this doctor
+        assignments = find_all_by_field('assignments.json', 'doctorID', doctor_id)
+        
+        # Get unique patient IDs
+        patient_ids = list(set([a['patientID'] for a in assignments]))
+        
+        # Build patient data with history
+        patients_data = []
+        for patient_id in patient_ids:
+            # Get patient info
+            patient = find_by_id('patients.json', 'patientID', patient_id)
+            if not patient:
+                continue
+            
+            # Get assessments
+            assessments = find_all_by_field('assessments.json', 'patientID', patient_id)
+            
+            # Get prescriptions
+            prescriptions = find_all_by_field('prescriptions.json', 'patientID', patient_id)
+            
+            # Create prescription map
+            prescription_map = {}
+            for prescription in prescriptions:
+                assessment_id = prescription.get('assessmentID')
+                if assessment_id:
+                    prescription_map[assessment_id] = prescription
+            
+            # Format history
+            history = []
+            for assessment in assessments:
+                assessment_id = assessment.get('assessmentID')
+                history_entry = {
+                    'assessmentID': assessment_id,
+                    'assessmentDate': assessment.get('assessmentDate'),
+                    'weight': assessment.get('weight'),
+                    'weightUnit': assessment.get('weightUnit'),
+                    'height': assessment.get('height'),
+                    'heightUnit': assessment.get('heightUnit'),
+                    'age': assessment.get('age'),
+                    'symptoms': assessment.get('symptoms', []),
+                    'followUpResponses': assessment.get('followUpResponses', [])
+                }
+                
+                if assessment_id in prescription_map:
+                    prescription = prescription_map[assessment_id]
+                    history_entry['prescription'] = {
+                        'prescriptionID': prescription.get('prescriptionID'),
+                        'medications': prescription.get('medications', []),
+                        'instructions': prescription.get('instructions'),
+                        'generatedDate': prescription.get('generatedDate')
+                    }
+                
+                history.append(history_entry)
+            
+            # Sort history by date
+            history.sort(key=lambda x: x.get('assessmentDate', ''), reverse=True)
+            
+            patients_data.append({
+                'patientID': patient_id,
+                'firstName': patient.get('firstName'),
+                'lastName': patient.get('lastName'),
+                'email': patient.get('email'),
+                'assessmentCount': len(assessments),
+                'history': history
+            })
+        
+        return jsonify({
+            'doctorID': doctor_id,
+            'patientCount': len(patients_data),
+            'patients': patients_data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/prescriptions/<prescription_id>', methods=['PUT'])
+def update_prescription(prescription_id):
+    """
+    Update a prescription (doctor can edit AI-generated prescription).
+    
+    Expected JSON body:
+    {
+        "medications": [...],
+        "instructions": "..."
+    }
+    
+    Returns:
+        200: Prescription updated successfully
+        401: Unauthorized
+        403: Forbidden (not a doctor)
+        404: Prescription not found
+    """
+    try:
+        # Validate authentication
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({
+                'error': 'Unauthorized',
+                'message': 'Missing or invalid authorization header'
+            }), 401
+
+        token = auth_header.split(' ')[1]
+        user_info = validate_token(token)
+
+        if not user_info:
+            return jsonify({
+                'error': 'Unauthorized',
+                'message': 'Invalid or expired token'
+            }), 401
+
+        # Verify user is a doctor
+        if user_info['userType'] != 'doctor':
+            return jsonify({
+                'error': 'Forbidden',
+                'message': 'Only doctors can edit prescriptions'
+            }), 403
+
+        data = request.get_json()
+        
+        # Find prescription
+        prescriptions = find_all_by_field('prescriptions.json', 'prescriptionID', prescription_id)
+        if not prescriptions:
+            return jsonify({
+                'error': 'Not found',
+                'message': 'Prescription not found'
+            }), 404
+        
+        # Update prescription
+        updates = {}
+        if 'medications' in data:
+            updates['medications'] = data['medications']
+        if 'instructions' in data:
+            updates['instructions'] = data['instructions']
+        
+        updates['lastModifiedBy'] = user_info['userID']
+        updates['lastModifiedDate'] = datetime.now(timezone.utc).isoformat()
+        
+        updated_prescription = update_record('prescriptions.json', 'prescriptionID', prescription_id, updates)
+        
+        return jsonify({
+            'message': 'Prescription updated successfully',
+            'prescription': updated_prescription
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        }), 500
 
 @app.route('/api/patients/<patient_id>/history', methods=['GET'])
 def get_patient_history(patient_id):
@@ -235,16 +458,16 @@ def get_patient_history(patient_id):
             }), 401
 
         token = auth_header.split(' ')[1]
-        authenticated_patient_id = validate_token(token)
+        user_info = validate_token(token)
 
-        if not authenticated_patient_id:
+        if not user_info:
             return jsonify({
                 'error': 'Unauthorized',
                 'message': 'Invalid or expired token'
             }), 401
 
         # Verify the authenticated patient is requesting their own history
-        if authenticated_patient_id != patient_id:
+        if user_info['userType'] == 'patient' and user_info['userID'] != patient_id:
             return jsonify({
                 'error': 'Forbidden',
                 'message': 'You can only access your own patient history'
@@ -316,16 +539,6 @@ def get_patient_history(patient_id):
         }), 500
 
 
-# Simple symptom-to-medication mapping for MVP
-SYMPTOM_MEDICATIONS = {
-    'headache': {'name': 'Ibuprofen', 'dosage': '200mg', 'frequency': 'Every 6 hours', 'duration': '3 days'},
-    'fever': {'name': 'Acetaminophen', 'dosage': '500mg', 'frequency': 'Every 4-6 hours', 'duration': '5 days'},
-    'cough': {'name': 'Dextromethorphan', 'dosage': '10mg', 'frequency': 'Every 4 hours', 'duration': '7 days'},
-    'sore throat': {'name': 'Throat Lozenges', 'dosage': '1 lozenge', 'frequency': 'Every 2-3 hours', 'duration': '5 days'},
-    'fatigue': {'name': 'Multivitamin', 'dosage': '1 tablet', 'frequency': 'Once daily', 'duration': '30 days'},
-    'nausea': {'name': 'Ondansetron', 'dosage': '4mg', 'frequency': 'Every 8 hours', 'duration': '3 days'},
-}
-
 @app.route('/api/assessments', methods=['POST'])
 def create_assessment():
     """
@@ -357,9 +570,9 @@ def create_assessment():
             }), 401
 
         token = auth_header.split(' ')[1]
-        authenticated_patient_id = validate_token(token)
+        user_info = validate_token(token)
 
-        if not authenticated_patient_id:
+        if not user_info:
             return jsonify({
                 'error': 'Unauthorized',
                 'message': 'Invalid or expired token'
@@ -377,8 +590,8 @@ def create_assessment():
                 'message': f'Missing required fields: {", ".join(missing_fields)}'
             }), 400
         
-        # Verify authenticated patient matches request
-        if authenticated_patient_id != data['patientID']:
+        # Verify authenticated patient matches request (only for patients, doctors can create for any patient)
+        if user_info['userType'] == 'patient' and user_info['userID'] != data['patientID']:
             return jsonify({
                 'error': 'Forbidden',
                 'message': 'You can only create assessments for yourself'
@@ -436,21 +649,19 @@ def create_assessment():
         
         add_record('assessments.json', assessment_record)
         
-        # Generate prescription based on symptoms
-        medications = []
-        for symptom in symptoms:
-            symptom_lower = symptom.lower()
-            if symptom_lower in SYMPTOM_MEDICATIONS:
-                medications.append(SYMPTOM_MEDICATIONS[symptom_lower])
+        # Generate prescription using Amazon Bedrock LLM
+        bedrock_service = get_bedrock_service()
+        prescription_data = bedrock_service.generate_prescription(
+            symptoms=symptoms,
+            age=age,
+            weight=weight,
+            weight_unit=data['weightUnit'],
+            height=height,
+            height_unit=data['heightUnit']
+        )
         
-        # If no matching medications, provide general advice
-        if not medications:
-            medications.append({
-                'name': 'General Rest and Hydration',
-                'dosage': 'As needed',
-                'frequency': 'Throughout the day',
-                'duration': 'Until symptoms improve'
-            })
+        medications = prescription_data['medications']
+        instructions = prescription_data['instructions']
         
         prescription_id = generate_id()
         prescription_record = {
@@ -458,28 +669,33 @@ def create_assessment():
             'assessmentID': assessment_id,
             'patientID': data['patientID'],
             'medications': medications,
-            'instructions': 'Take medications as directed. Consult a doctor if symptoms persist or worsen.',
-            'generatedDate': datetime.now(timezone.utc).isoformat()
+            'instructions': instructions,
+            'generatedDate': datetime.now(timezone.utc).isoformat(),
+            'generatedBy': 'AI-Bedrock'
         }
         
         add_record('prescriptions.json', prescription_record)
         
-        # Assign a doctor (simple round-robin)
-        doctors = find_all_by_field('doctors.json', 'doctorID', None)  # Get all doctors
+        # Assign a doctor (get all doctors from database)
+        try:
+            doctors = read_json_file('doctors.json')
+        except:
+            doctors = []
+        
         if not doctors:
             # Fallback if no doctors in system
             doctors = [{'doctorID': 'd001', 'firstName': 'Dr.', 'lastName': 'Smith', 'specialization': 'General Practice'}]
         
         # Simple selection: use first doctor for MVP
-        selected_doctor = doctors[0] if doctors else None
+        selected_doctor = doctors[0]
         
         token_id = generate_id()
         assignment_record = {
             'assignmentID': generate_id(),
             'assessmentID': assessment_id,
             'patientID': data['patientID'],
-            'doctorID': selected_doctor['doctorID'] if selected_doctor else 'd001',
-            'doctorName': f"{selected_doctor.get('firstName', 'Dr.')} {selected_doctor.get('lastName', 'Smith')}",
+            'doctorID': selected_doctor['doctorID'],
+            'doctorName': f"{selected_doctor['firstName']} {selected_doctor['lastName']}",
             'tokenID': token_id,
             'assignmentDate': datetime.now(timezone.utc).isoformat()
         }

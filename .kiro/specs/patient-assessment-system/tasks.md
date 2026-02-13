@@ -83,7 +83,7 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - **Property 6: History Display Contains Required Fields**
     - **Validates: Requirements 3.1, 3.3**
 
-- [~] 4. Checkpoint - Ensure patient service tests pass
+- [ ] 4. Checkpoint - Ensure patient service tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 5. Implement Assessment Service (backend)
@@ -101,20 +101,20 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - **Property 8: Valid Assessment Data Persisted**
     - **Validates: Requirements 4.2, 4.3**
   
-  - [~] 5.3 Create assessment retrieval endpoint (GET /api/assessments/{assessment_id})
+  - [ ] 5.3 Create assessment retrieval endpoint (GET /api/assessments/{assessment_id})
     - Require authentication
     - Read from assessments.json and find by assessment_id
     - Include follow-up responses if present
     - _Requirements: 4.3_
 
 - [ ] 6. Implement Follow-up Question Engine (backend)
-  - [~] 6.1 Create symptom-to-question mapping rules
+  - [ ] 6.1 Create symptom-to-question mapping rules
     - Define dictionary of symptoms to follow-up questions
     - Include common symptoms (headache, fever, cough, fatigue, etc.)
     - Each symptom maps to 3-5 relevant questions
     - _Requirements: 5.1_
   
-  - [~] 6.2 Create follow-up questions endpoint (POST /api/assessments/{assessment_id}/followup-questions)
+  - [ ] 6.2 Create follow-up questions endpoint (POST /api/assessments/{assessment_id}/followup-questions)
     - Accept symptoms list from assessment
     - Match symptoms to question rules
     - Return relevant follow-up questions
@@ -124,7 +124,7 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - **Property 10: Symptoms Generate Follow-up Questions**
     - **Validates: Requirements 5.1**
   
-  - [~] 6.4 Create follow-up responses endpoint (POST /api/assessments/{assessment_id}/followup-responses)
+  - [ ] 6.4 Create follow-up responses endpoint (POST /api/assessments/{assessment_id}/followup-responses)
     - Accept follow-up responses
     - Read assessments.json, find assessment by ID
     - Update assessment with follow-up responses
@@ -136,7 +136,7 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - **Validates: Requirements 5.2**
 
 - [ ] 7. Implement Prescription Service (backend)
-  - [~] 7.1 Create symptom-to-medication mapping rules
+  - [ ] 7.1 Create symptom-to-medication mapping rules
     - Define dictionary of symptoms to medications
     - Include medication name, dosage, frequency, duration
     - Add general instructions templates
@@ -157,7 +157,7 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - **Property 13: Prescription Contains Required Fields**
     - **Validates: Requirements 6.1, 6.2**
   
-  - [~] 7.4 Create prescription retrieval endpoint (GET /api/prescriptions/patient/{patient_id})
+  - [ ] 7.4 Create prescription retrieval endpoint (GET /api/prescriptions/patient/{patient_id})
     - Require authentication (doctor or patient)
     - Read prescriptions.json and filter by patient_id
     - Read assessments.json to include assessment data
@@ -170,7 +170,7 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - **Property 19: Prescription Display Contains Complete Information**
     - **Validates: Requirements 9.1, 9.2, 9.3**
 
-- [~] 8. Checkpoint - Ensure assessment and prescription services tests pass
+- [ ] 8. Checkpoint - Ensure assessment and prescription services tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 9. Implement Doctor Assignment Service (backend)
@@ -188,7 +188,7 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - **Validates: Requirements 7.1, 7.2**
 
 - [ ] 10. Implement Doctor Portal endpoints (backend)
-  - [~] 10.1 Create doctor authentication endpoint (POST /api/doctors/login)
+  - [ ] 10.1 Create doctor authentication endpoint (POST /api/doctors/login)
     - Accept doctor credentials
     - Read from doctors.json and validate credentials
     - Generate session token
@@ -199,7 +199,7 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - **Property 16: Doctor Authentication Grants Prescription Access**
     - **Validates: Requirements 8.2**
   
-  - [~] 10.3 Ensure prescription retrieval endpoint supports doctor access
+  - [ ] 10.3 Ensure prescription retrieval endpoint supports doctor access
     - Verify doctor authentication in prescription retrieval
     - Allow doctors to access any patient's prescriptions
     - _Requirements: 9.1, 9.2, 9.3_
@@ -240,13 +240,13 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - Display validation errors
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
   
-  - [~] 12.5 Create follow-up questions component
+  - [ ] 12.5 Create follow-up questions component
     - Display follow-up questions based on symptoms
     - Text input or radio buttons for responses
     - Call follow-up responses API
     - _Requirements: 5.1, 5.2, 5.3_
   
-  - [~] 12.6 Create prescription display component
+  - [ ] 12.6 Create prescription display component
     - Show generated prescription details
     - Display medications with dosages and instructions
     - Show assigned doctor name and Token_ID
@@ -254,14 +254,14 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - _Requirements: 6.1, 6.2, 7.1, 7.2, 7.3_
 
 - [ ] 13. Implement Doctor Portal UI (React frontend)
-  - [~] 13.1 Create doctor login page component
+  - [ ] 13.1 Create doctor login page component
     - Form with email and password fields
     - Call doctor authentication API
     - Store session token
     - Redirect to doctor dashboard
     - _Requirements: 8.1, 8.2_
   
-  - [~] 13.2 Create doctor dashboard component
+  - [ ] 13.2 Create doctor dashboard component
     - Input field for Patient_ID
     - Search button to retrieve prescriptions
     - Display prescription results
@@ -276,20 +276,20 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - Implement protected routes (require authentication)
     - _Requirements: All UI requirements_
   
-  - [~] 14.2 Create navigation components
+  - [ ] 14.2 Create navigation components
     - Header with logout button
     - Navigation between patient portal sections
     - Separate navigation for doctor portal
     - _Requirements: All UI requirements_
 
 - [ ] 15. Implement complete patient flow integration
-  - [~] 15.1 Wire together patient registration → login → assessment → prescription flow
+  - [ ] 15.1 Wire together patient registration → login → assessment → prescription flow
     - Ensure data flows correctly through all steps
     - Test new patient journey end-to-end
     - Handle errors gracefully at each step
     - _Requirements: 1.1, 1.2, 1.3, 2.1, 4.1, 4.3, 5.1, 5.2, 6.1, 7.1_
   
-  - [~] 15.2 Wire together existing patient login → assessment → prescription flow
+  - [ ] 15.2 Wire together existing patient login → assessment → prescription flow
     - Ensure patient history displays correctly
     - Test existing patient journey end-to-end
     - _Requirements: 2.1, 2.3, 3.1, 4.1, 6.1, 7.1_
@@ -300,7 +300,7 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - _Requirements: 1.1, 2.1, 4.1, 6.1, 7.1_
 
 - [ ] 16. Implement complete doctor flow integration
-  - [~] 16.1 Wire together doctor login → prescription retrieval flow
+  - [ ] 16.1 Wire together doctor login → prescription retrieval flow
     - Ensure doctor can access portal
     - Test prescription retrieval by Patient_ID
     - Handle invalid Patient_ID gracefully
@@ -310,23 +310,23 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - Test doctor authentication and prescription retrieval
     - _Requirements: 8.2, 9.1_
 
-- [~] 17. Checkpoint - Ensure all integration tests pass
+- [ ] 17. Checkpoint - Ensure all integration tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 18. Add responsive design and UI polish
-  - [~] 18.1 Add CSS styling for all components
+  - [ ] 18.1 Add CSS styling for all components
     - Create consistent color scheme and typography
     - Style forms, buttons, and navigation
     - Add loading spinners for API calls
     - _Requirements: 11.1, 11.2, 11.3_
   
-  - [~] 18.2 Implement responsive design
+  - [ ] 18.2 Implement responsive design
     - Use CSS media queries or responsive framework
     - Test on desktop and mobile viewports
     - Ensure forms are usable on mobile devices
     - _Requirements: 11.1, 11.2_
   
-  - [~] 18.3 Add form validation feedback
+  - [ ] 18.3 Add form validation feedback
     - Display inline validation errors
     - Highlight invalid fields
     - Show success messages
@@ -354,14 +354,14 @@ This implementation plan breaks down the Patient Assessment System into discrete
     - Fix any failing tests
     - _Requirements: All requirements_
   
-  - [~] 20.3 Manual testing of complete user flows
+  - [ ] 20.3 Manual testing of complete user flows
     - Test new patient registration and assessment flow
     - Test existing patient login and assessment flow
     - Test doctor portal prescription retrieval
     - Test error handling and edge cases
     - _Requirements: All requirements_
 
-- [~] 21. Final checkpoint - System ready for use
+- [ ] 21. Final checkpoint - System ready for use
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

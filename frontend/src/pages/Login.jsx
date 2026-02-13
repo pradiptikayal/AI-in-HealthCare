@@ -24,10 +24,16 @@ function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      const response = await axios.post('/api/patients/login', formData);
-      const { token, patient } = response.data;
-      onLogin(token, patient);
-      navigate('/dashboard');
+      const response = await axios.post('/api/login', formData);
+      const { token, userType, user } = response.data;
+      onLogin(token, user, userType);
+      
+      // Navigate based on user type
+      if (userType === 'doctor') {
+        navigate('/doctor-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     } finally {
@@ -38,8 +44,8 @@ function Login({ onLogin }) {
   return (
     <div className="page-container">
       <div className="form-card">
-        <h1>Patient Login</h1>
-        <p className="subtitle">Sign in to access your health portal</p>
+        <h1>Login</h1>
+        <p className="subtitle">Sign in as a patient or doctor</p>
         
         {error && <div className="error-message">{error}</div>}
         
@@ -51,6 +57,7 @@ function Login({ onLogin }) {
               name="email"
               value={formData.email}
               onChange={handleChange}
+              placeholder="your.email@example.com"
               required
             />
           </div>
@@ -72,7 +79,7 @@ function Login({ onLogin }) {
         </form>
 
         <p className="link-text">
-          Don't have an account? <Link to="/register">Register here</Link>
+          Don't have an account? <Link to="/register">Register as Patient</Link>
         </p>
       </div>
     </div>
