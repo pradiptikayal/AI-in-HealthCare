@@ -978,3 +978,417 @@ prescriptionRules = {
    - Alert on high error rates
 
 **Note:** This is a demonstration system. Real prescription generation requires medical expertise and should not be used for actual medical advice. All AI-generated prescriptions must be reviewed by licensed physicians.
+
+
+## Future Enhancements
+
+### 1. Speech-to-Text Support
+
+**Overview:**
+Enable voice input for patient assessments, allowing patients to speak their symptoms instead of typing.
+
+**Architecture Integration:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   Presentation Layer                         │
+│  ┌──────────────────────┐                                   │
+│  │   Assessment Form    │                                   │
+│  │   + Voice Input UI   │                                   │
+│  │   + Audio Capture    │                                   │
+│  └──────────┬───────────┘                                   │
+└─────────────┼───────────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Speech Recognition Service                      │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  Amazon Transcribe                                   │  │
+│  │  - Real-time audio streaming                         │  │
+│  │  - Speech-to-text conversion                         │  │
+│  │  - Medical vocabulary support                        │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────┼───────────────────────────────────────────────┘
+              │
+              ▼
+        Text → Assessment Service → Prescription Generation
+```
+
+**Technical Components:**
+
+**Frontend (Browser):**
+```javascript
+// Audio capture using Web Audio API
+navigator.mediaDevices.getUserMedia({ audio: true })
+  .then(stream => {
+    // Stream audio to backend
+    const mediaRecorder = new MediaRecorder(stream);
+    // Send audio chunks to transcription service
+  });
+```
+
+**Backend Service:**
+```python
+class SpeechService:
+    def transcribe_audio(audio_stream) -> str:
+        # Use AWS Transcribe
+        transcribe_client = boto3.client('transcribe')
+        response = transcribe_client.start_stream_transcription(
+            LanguageCode='en-US',
+            MediaSampleRateHertz=16000,
+            MediaEncoding='pcm',
+            AudioStream=audio_stream
+        )
+        return response['TranscriptResultStream']
+```
+
+**AWS Configuration:**
+```
+Environment Variables:
+- AWS_TRANSCRIBE_REGION: AWS region for Transcribe
+- TRANSCRIBE_LANGUAGE_CODE: Default language (en-US)
+- TRANSCRIBE_VOCABULARY_NAME: Custom medical vocabulary
+```
+
+**IAM Permissions:**
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "transcribe:StartStreamTranscription",
+    "transcribe:StartTranscriptionJob"
+  ],
+  "Resource": "*"
+}
+```
+
+**Benefits:**
+- Hands-free assessment completion
+- Faster data entry (speaking is 3x faster than typing)
+- Better accessibility for elderly and disabled patients
+- More natural symptom description
+
+**Cost Estimate:**
+- AWS Transcribe: ~$0.024 per minute of audio
+- Average assessment: 2-3 minutes of speech
+- Cost per assessment: ~$0.05-$0.07
+
+### 2. Multilingual Support
+
+**Overview:**
+Support patients speaking in any language with automatic translation to English for processing.
+
+**Architecture Integration:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                Voice Input (Any Language)                    │
+│                         │                                    │
+│                         ▼                                    │
+│              ┌──────────────────────┐                       │
+│              │  Amazon Transcribe   │                       │
+│              │  + Language Detection│                       │
+│              └──────────┬───────────┘                       │
+│                         │                                    │
+│                         ▼                                    │
+│              ┌──────────────────────┐                       │
+│              │  Amazon Translate    │                       │
+│              │  Source → English    │                       │
+│              └──────────┬───────────┘                       │
+│                         │                                    │
+│                         ▼                                    │
+│              English Text → Assessment                       │
+│                         │                                    │
+│                         ▼                                    │
+│              ┌──────────────────────┐                       │
+│              │  Amazon Bedrock      │                       │
+│              │  Prescription Gen    │                       │
+│              └──────────┬───────────┘                       │
+│                         │                                    │
+│                         ▼                                    │
+│              English Prescription                            │
+│              (Optional: Translate back)                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Technical Components:**
+
+**Language Detection:**
+```python
+class LanguageService:
+    def detect_language(text: str) -> str:
+        comprehend = boto3.client('comprehend')
+        response = comprehend.detect_dominant_language(Text=text)
+        return response['Languages'][0]['LanguageCode']
+```
+
+**Translation Service:**
+```python
+class TranslationService:
+    def translate_to_english(text: str, source_language: str) -> str:
+        translate = boto3.client('translate')
+        response = translate.translate_text(
+            Text=text,
+            SourceLanguageCode=source_language,
+            TargetLanguageCode='en'
+        )
+        return response['TranslatedText']
+    
+    def translate_from_english(text: str, target_language: str) -> str:
+        translate = boto3.client('translate')
+        response = translate.translate_text(
+            Text=text,
+            SourceLanguageCode='en',
+            TargetLanguageCode=target_language
+        )
+        return response['TranslatedText']
+```
+
+**Supported Languages:**
+- Spanish (es)
+- French (fr)
+- German (de)
+- Chinese Simplified (zh)
+- Chinese Traditional (zh-TW)
+- Hindi (hi)
+- Arabic (ar)
+- Portuguese (pt)
+- Russian (ru)
+- Japanese (ja)
+- Korean (ko)
+- Italian (it)
+- And 70+ more languages
+
+**AWS Configuration:**
+```
+Environment Variables:
+- AWS_TRANSLATE_REGION: AWS region for Translate
+- SUPPORTED_LANGUAGES: Comma-separated list of language codes
+- DEFAULT_OUTPUT_LANGUAGE: Default prescription language (en)
+```
+
+**IAM Permissions:**
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "translate:TranslateText",
+    "comprehend:DetectDominantLanguage"
+  ],
+  "Resource": "*"
+}
+```
+
+**Database Schema Updates:**
+
+```sql
+-- Add language tracking to assessments
+ALTER TABLE Assessments
+ADD InputLanguage NVARCHAR(10) NULL,
+ADD TranslatedFromLanguage BIT DEFAULT 0;
+
+-- Add language preference to patients
+ALTER TABLE Patients
+ADD PreferredLanguage NVARCHAR(10) DEFAULT 'en';
+```
+
+**Benefits:**
+- Global accessibility - support for 70+ languages
+- Reduced language barriers in healthcare
+- Improved accuracy through native language input
+- Better patient comfort and trust
+
+**Cost Estimate:**
+- AWS Translate: ~$15 per million characters
+- Average assessment: 500 characters
+- Cost per assessment: ~$0.0075 (less than 1 cent)
+
+### 3. Combined Workflow Implementation
+
+**End-to-End Service:**
+
+```python
+class MultilingualVoiceAssessmentService:
+    def __init__(self):
+        self.speech_service = SpeechService()
+        self.language_service = LanguageService()
+        self.translation_service = TranslationService()
+        self.bedrock_service = BedrockService()
+    
+    def process_voice_assessment(
+        self,
+        audio_stream,
+        patient_id: str,
+        weight: float,
+        height: float,
+        age: int
+    ) -> dict:
+        # Step 1: Transcribe audio to text
+        transcribed_text = self.speech_service.transcribe_audio(audio_stream)
+        
+        # Step 2: Detect language
+        detected_language = self.language_service.detect_language(transcribed_text)
+        
+        # Step 3: Translate to English if needed
+        if detected_language != 'en':
+            english_text = self.translation_service.translate_to_english(
+                transcribed_text, 
+                detected_language
+            )
+        else:
+            english_text = transcribed_text
+        
+        # Step 4: Extract symptoms from text
+        symptoms = self.extract_symptoms(english_text)
+        
+        # Step 5: Generate prescription using Bedrock
+        prescription = self.bedrock_service.generate_prescription(
+            symptoms=symptoms,
+            age=age,
+            weight=weight,
+            weight_unit='kg',
+            height=height,
+            height_unit='cm'
+        )
+        
+        # Step 6: Optionally translate prescription back
+        if detected_language != 'en':
+            prescription['instructions'] = self.translation_service.translate_from_english(
+                prescription['instructions'],
+                detected_language
+            )
+        
+        return {
+            'original_text': transcribed_text,
+            'detected_language': detected_language,
+            'english_text': english_text,
+            'prescription': prescription
+        }
+```
+
+**Frontend UI Components:**
+
+```javascript
+// Voice input button with language indicator
+<VoiceInputButton 
+  onTranscript={(text, language) => {
+    setSymptoms(text);
+    setDetectedLanguage(language);
+  }}
+  supportedLanguages={['en', 'es', 'fr', 'de', 'zh', 'hi', 'ar']}
+/>
+
+// Language selector for prescription output
+<LanguageSelector
+  value={prescriptionLanguage}
+  onChange={setPrescriptionLanguage}
+  label="Prescription Language"
+/>
+```
+
+### Implementation Roadmap
+
+**Phase 1: Speech-to-Text (English Only)**
+- Estimated Time: 2-3 weeks
+- Components:
+  - Frontend audio capture
+  - AWS Transcribe integration
+  - Voice input UI components
+  - Testing with medical vocabulary
+
+**Phase 2: Multilingual Translation**
+- Estimated Time: 2-3 weeks
+- Components:
+  - Language detection service
+  - AWS Translate integration
+  - Database schema updates
+  - Multi-language UI support
+
+**Phase 3: Optimization & Enhancement**
+- Estimated Time: 1-2 weeks
+- Components:
+  - Custom medical vocabulary for Transcribe
+  - Caching for common translations
+  - Performance optimization
+  - Comprehensive testing
+
+### Testing Strategy
+
+**Speech-to-Text Testing:**
+- Test with various accents and speech patterns
+- Test with medical terminology
+- Test with background noise
+- Test audio quality variations
+
+**Translation Testing:**
+- Verify accuracy of medical term translations
+- Test with idiomatic expressions
+- Validate prescription translation quality
+- Test with multiple language combinations
+
+**Integration Testing:**
+- End-to-end workflow testing
+- Performance testing under load
+- Cost monitoring and optimization
+- User acceptance testing
+
+### Monitoring & Analytics
+
+**Metrics to Track:**
+- Speech recognition accuracy rate
+- Translation accuracy rate
+- Language distribution of users
+- Average processing time per assessment
+- Cost per assessment by feature
+- User satisfaction scores
+
+**AWS CloudWatch Metrics:**
+- Transcribe API latency
+- Translate API latency
+- Error rates by service
+- Cost tracking by service
+
+### Security & Privacy Considerations
+
+**Audio Data:**
+- Audio streams not stored permanently
+- Encrypted in transit (TLS)
+- Temporary storage only for processing
+- Automatic deletion after transcription
+
+**Translation Data:**
+- No data retention by AWS Translate
+- Patient data anonymized in logs
+- Compliance with HIPAA requirements
+- Audit trail for all translations
+
+**Compliance:**
+- GDPR compliance for EU patients
+- HIPAA compliance for US patients
+- Data residency requirements
+- Patient consent for voice recording
+
+### Cost Optimization Strategies
+
+1. **Caching**: Cache common symptom translations
+2. **Batch Processing**: Group translation requests when possible
+3. **Compression**: Compress audio before transmission
+4. **Selective Translation**: Only translate when necessary
+5. **Custom Vocabulary**: Reduce transcription errors and retries
+
+### Success Metrics
+
+**Adoption:**
+- 30% of assessments use voice input within 6 months
+- Support for 10+ languages within 1 year
+- 95% transcription accuracy for medical terms
+
+**User Experience:**
+- 50% reduction in assessment completion time
+- 80% user satisfaction with voice input
+- 90% translation accuracy for medical content
+
+**Business Impact:**
+- 25% increase in patient engagement
+- Expanded market reach to non-English speakers
+- Improved accessibility ratings

@@ -138,3 +138,83 @@ The Patient Assessment System is a healthcare web application that enables patie
 1. THE System SHALL include a README.md file with setup instructions
 2. WHEN a developer reads the README, THE System documentation SHALL explain the application architecture and features
 3. WHEN a developer reads the README, THE System documentation SHALL provide instructions for running the application locally
+
+
+## Future Scope
+
+The following features are planned for future releases to enhance the Patient Assessment System:
+
+### 1. Speech-to-Text Support
+
+**Description:** Enable patients to speak their symptoms and health issues instead of typing them.
+
+**Benefits:**
+- Improved accessibility for patients with limited typing ability
+- Faster data entry for patients
+- Better user experience, especially on mobile devices
+- Reduced friction in the assessment process
+
+**Technical Implementation:**
+- Integration with speech recognition APIs (e.g., AWS Transcribe, Google Speech-to-Text)
+- Real-time audio capture from browser
+- Conversion of spoken words to text for symptom input
+- Support for voice commands in assessment forms
+
+**User Story:** As a patient, I want to speak my symptoms instead of typing them, so that I can complete assessments more quickly and easily.
+
+### 2. Multilingual Support
+
+**Description:** Allow patients to speak in any language, with automatic translation and assessment generation.
+
+**Benefits:**
+- Accessibility for non-English speaking patients
+- Broader patient reach and inclusivity
+- Reduced language barriers in healthcare
+- Improved patient comfort and accuracy in describing symptoms
+
+**Technical Implementation:**
+- Integration with translation services (e.g., AWS Translate, Google Translate)
+- Automatic language detection from speech input
+- Translation of patient input to English for processing
+- Generation of prescriptions in English (with option for translated output)
+- Support for major languages (Spanish, French, German, Chinese, Hindi, Arabic, etc.)
+
+**User Story:** As a non-English speaking patient, I want to describe my symptoms in my native language, so that I can accurately communicate my health issues without language barriers.
+
+### 3. Combined Voice + Multilingual Workflow
+
+**End-to-End Flow:**
+1. Patient clicks "Speak" button in assessment form
+2. System captures audio and detects language automatically
+3. Speech is converted to text in the patient's language
+4. Text is translated to English for processing
+5. AI generates prescription based on English assessment
+6. Prescription is displayed in English (with optional translation)
+
+**AWS Services Integration:**
+- **Amazon Transcribe**: Speech-to-text conversion with automatic language detection
+- **Amazon Translate**: Real-time translation between languages
+- **Amazon Bedrock**: AI-powered prescription generation (already implemented)
+- **Amazon Polly** (optional): Text-to-speech for reading prescriptions aloud
+
+### Implementation Priority
+
+**Phase 1 (Current):** Core assessment system with text input and AI prescription generation ✅
+
+**Phase 2 (Next):** Speech-to-text support for English language
+- Implement audio capture in frontend
+- Integrate AWS Transcribe
+- Add voice input UI components
+
+**Phase 3 (Future):** Multilingual support
+- Add language detection
+- Integrate AWS Translate
+- Support multiple languages for input
+- Provide translated prescription output options
+
+### Estimated Benefits
+
+- **Accessibility**: 40% faster assessment completion with voice input
+- **Reach**: Support for 95% of global population with top 10 languages
+- **User Satisfaction**: Improved experience for elderly and mobility-impaired patients
+- **Accuracy**: Better symptom description through natural speech vs typing
