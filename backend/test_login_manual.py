@@ -43,7 +43,7 @@ def test_registration_and_login():
     }
     
     login_response = requests.post(
-        f"{BASE_URL}/api/patients/login",
+        f"{BASE_URL}/api/login",
         json=login_data
     )
     
@@ -65,7 +65,7 @@ def test_registration_and_login():
     }
     
     invalid_response = requests.post(
-        f"{BASE_URL}/api/patients/login",
+        f"{BASE_URL}/api/login",
         json=invalid_login_data
     )
     
@@ -85,7 +85,7 @@ def test_registration_and_login():
     }
     
     nonexistent_response = requests.post(
-        f"{BASE_URL}/api/patients/login",
+        f"{BASE_URL}/api/login",
         json=nonexistent_login_data
     )
     

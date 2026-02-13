@@ -2,9 +2,12 @@
 Unit tests for patient registration endpoint.
 """
 
+import os
+# Set environment variable BEFORE importing app
+os.environ['SECRET_KEY'] = 'test-secret-key-for-unit-tests-only'
+
 import pytest
 import json
-import os
 import sys
 from datetime import datetime
 

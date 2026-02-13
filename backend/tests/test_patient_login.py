@@ -3,12 +3,17 @@ Unit tests for patient authentication endpoint.
 Tests Requirements 2.1 and 2.2.
 """
 
+import os
+# Set environment variable BEFORE importing app
+TEST_SECRET_KEY = 'test-secret-key-for-unit-tests-only'
+os.environ['SECRET_KEY'] = TEST_SECRET_KEY
+
 import pytest
 import json
 import bcrypt
 import jwt
 from datetime import datetime, timezone
-from app import app, SECRET_KEY
+from app import app
 from data_access import write_json_file, read_json_file
 
 
@@ -50,7 +55,7 @@ def setup_test_patient():
 
 def test_login_success(client, setup_test_patient):
     """Test successful patient login with valid credentials."""
-    response = client.post('/api/patients/login', 
+    response = client.post('/api/login', 
                            json={
                                'email': 'test@example.com',
                                'password': 'testpassword123'
@@ -62,25 +67,28 @@ def test_login_success(client, setup_test_patient):
     assert 'message' in data
     assert data['message'] == 'Authentication successful'
     assert 'token' in data
-    assert 'patient' in data
+    assert 'user' in data
+    assert 'userType' in data
+    assert data['userType'] == 'patient'
     
     # Verify patient info
-    patient_info = data['patient']
-    assert patient_info['patientID'] == 'test-patient-id-123'
-    assert patient_info['firstName'] == 'Test'
-    assert patient_info['lastName'] == 'Patient'
-    assert patient_info['email'] == 'test@example.com'
+    user_info = data['user']
+    assert user_info['userID'] == 'test-patient-id-123'
+    assert user_info['firstName'] == 'Test'
+    assert user_info['lastName'] == 'Patient'
+    assert user_info['email'] == 'test@example.com'
     
     # Verify token is valid JWT
     token = data['token']
-    decoded = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-    assert decoded['patientID'] == 'test-patient-id-123'
+    decoded = jwt.decode(token, TEST_SECRET_KEY, algorithms=['HS256'])
+    assert decoded['userID'] == 'test-patient-id-123'
     assert decoded['email'] == 'test@example.com'
+    assert decoded['userType'] == 'patient'
 
 
 def test_login_invalid_password(client, setup_test_patient):
     """Test login with invalid password."""
-    response = client.post('/api/patients/login',
+    response = client.post('/api/login',
                            json={
                                'email': 'test@example.com',
                                'password': 'wrongpassword'
@@ -96,7 +104,7 @@ def test_login_invalid_password(client, setup_test_patient):
 
 def test_login_nonexistent_email(client, setup_test_patient):
     """Test login with non-existent email."""
-    response = client.post('/api/patients/login',
+    response = client.post('/api/login',
                            json={
                                'email': 'nonexistent@example.com',
                                'password': 'somepassword'
@@ -111,7 +119,7 @@ def test_login_nonexistent_email(client, setup_test_patient):
 
 def test_login_missing_email(client):
     """Test login with missing email field."""
-    response = client.post('/api/patients/login',
+    response = client.post('/api/login',
                            json={
                                'password': 'somepassword'
                            })
@@ -126,7 +134,7 @@ def test_login_missing_email(client):
 
 def test_login_missing_password(client):
     """Test login with missing password field."""
-    response = client.post('/api/patients/login',
+    response = client.post('/api/login',
                            json={
                                'email': 'test@example.com'
                            })
@@ -141,7 +149,7 @@ def test_login_missing_password(client):
 
 def test_login_empty_email(client):
     """Test login with empty email."""
-    response = client.post('/api/patients/login',
+    response = client.post('/api/login',
                            json={
                                'email': '',
                                'password': 'somepassword'
@@ -156,7 +164,7 @@ def test_login_empty_email(client):
 
 def test_login_empty_password(client):
     """Test login with empty password."""
-    response = client.post('/api/patients/login',
+    response = client.post('/api/login',
                            json={
                                'email': 'test@example.com',
                                'password': ''
@@ -171,7 +179,7 @@ def test_login_empty_password(client):
 
 def test_login_case_insensitive_email(client, setup_test_patient):
     """Test that email matching is case-insensitive."""
-    response = client.post('/api/patients/login',
+    response = client.post('/api/login',
                            json={
                                'email': 'TEST@EXAMPLE.COM',
                                'password': 'testpassword123'

@@ -4,11 +4,16 @@ Unit tests for patient history endpoint.
 Tests the GET /api/patients/{patient_id}/history endpoint.
 """
 
+import os
+# Set environment variable BEFORE importing app
+TEST_SECRET_KEY = 'test-secret-key-for-unit-tests-only'
+os.environ['SECRET_KEY'] = TEST_SECRET_KEY
+
 import pytest
 import json
 import jwt
 from datetime import datetime, timezone, timedelta
-from app import app, SECRET_KEY
+from app import app
 from data_access import write_json_file
 
 
@@ -114,11 +119,12 @@ def setup_test_data():
 def generate_test_token(patient_id):
     """Generate a test JWT token for authentication."""
     token_payload = {
-        'patientID': patient_id,
+        'userID': patient_id,
         'email': 'john.doe@test.com',
+        'userType': 'patient',
         'exp': datetime.now(timezone.utc) + timedelta(hours=24)
     }
-    return jwt.encode(token_payload, SECRET_KEY, algorithm='HS256')
+    return jwt.encode(token_payload, TEST_SECRET_KEY, algorithm='HS256')
 
 
 def test_get_patient_history_success(client, setup_test_data):

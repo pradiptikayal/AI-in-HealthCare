@@ -3,6 +3,7 @@ from flask_cors import CORS
 import bcrypt
 import re
 import jwt
+import os
 from datetime import datetime, timezone, timedelta
 from data_access import generate_id, add_record, find_by_id, find_all_by_field, update_record, read_json_file
 from bedrock_service import get_bedrock_service
@@ -10,8 +11,10 @@ from bedrock_service import get_bedrock_service
 app = Flask(__name__)
 CORS(app)
 
-# Secret key for JWT token generation (in production, use environment variable)
-SECRET_KEY = 'your-secret-key-change-in-production'
+# Secret key for JWT token generation from environment variable
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable is not set. Please set it in your .env file.")
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
